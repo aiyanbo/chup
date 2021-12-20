@@ -5,14 +5,16 @@ use anyhow::Result;
 use clap::Parser;
 use colored::Colorize;
 use pbr::ProgressBar;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
 use std::path::Path;
-
+use std::sync::mpsc::{self, TryRecvError};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct StageSteps {
     steps: Vec<ExecutionEntry>,
@@ -112,18 +114,31 @@ fn do_execute(config: &DatabaseConfig, entry: &ExecutionEntry) -> ExecutionResul
 
 fn execute_sql(config: &DatabaseConfig, sql: &str) -> bool {
     println!("  {} \n", sql.blue());
-    let mut rng = rand::thread_rng();
-    let count = rng.gen_range(3..15);
-    let mut pb = ProgressBar::new(count);
+    let (tx, rx) = mpsc::channel();
+    let count = 100;
+    let pb_ref = Arc::new(Mutex::new(ProgressBar::new(count)));
+    let pb1 = pb_ref.clone();
+    std::thread::spawn(move || {
+        for _ in 0..count {
+            match rx.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            }
+            pb1.lock().unwrap().inc();
+            std::thread::sleep(Duration::from_secs(1));
+        }
+    });
     let client = reqwest::blocking::Client::builder().build().unwrap();
-    pb.inc();
     let resp = client
         .post(&config.url)
         .body(sql.to_string())
         .send()
         .unwrap();
-    pb.inc();
-    pb.finish_println("\n");
+    let _ = tx.send(());
+    pb_ref.lock().unwrap().finish_println("\n");
+
     if resp.status().is_success() {
         println!("{}", resp.text().unwrap().green());
         true
