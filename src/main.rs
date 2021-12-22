@@ -15,6 +15,7 @@ use std::sync::mpsc::{self, TryRecvError};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
+
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct StageSteps {
     steps: Vec<ExecutionEntry>,

@@ -2,18 +2,18 @@ values:
   - active_ddl: &active_ddl "SELECT * FROM system.distributed_ddl_queue WHERE status = 'Active'"
 
 steps:
-  - name: create event table
+  - name: create table
     execute: select 1
     check: *active_ddl
-  - name: create event table1
+  - name: create table1
     execute: select abc
     check: *active_ddl
-  - name: create event table2
+  - name: create table2
     execute: select 1
     check: *active_ddl
-  - name: create event table3
+  - name: create table3
     execute: select abc
     check: *active_ddl
-  - name: create event table4
+  - name: create table4
     execute: select 1
     check: *active_ddl
