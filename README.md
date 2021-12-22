@@ -1,9 +1,9 @@
 # chup
 
+Chup is a Clickhouse migration tool.
 
 ## Run demo
 
 ```sh
-cargo build
-./target/debug/chup example demo
+cargo run example demo
 ```
